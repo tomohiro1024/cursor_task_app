@@ -50,6 +50,11 @@
       display: grid;
       gap: 6px;
     }
+    .field-error {
+      color: var(--danger);
+      font-size: 0.8rem;
+      min-height: 1em;
+    }
     .field-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -80,6 +85,10 @@
     select:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .invalid {
+      border-color: var(--danger) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
     }
     button {
       padding: 10px 16px;
@@ -180,19 +189,22 @@
 <body>
   <h1>タスク管理 <span class="count" id="count"></span></h1>
 
-  <form id="task-form">
+  <form id="task-form" novalidate>
     <div class="field-group">
       <label for="task-title">タイトル</label>
-      <input id="task-title" type="text" placeholder="例: API仕様の確認" autocomplete="off" required />
+      <input id="task-title" type="text" placeholder="例: API仕様の確認" autocomplete="off" />
+      <p class="field-error" id="task-title-error"></p>
     </div>
     <div class="field-group">
       <label for="task-description">説明</label>
       <textarea id="task-description" placeholder="タスクの詳細を入力"></textarea>
+      <p class="field-error" id="task-description-error"></p>
     </div>
     <div class="field-grid">
       <div class="field-group">
         <label for="task-deadline">期限</label>
         <input id="task-deadline" type="date" />
+        <p class="field-error" id="task-deadline-error"></p>
       </div>
       <div class="field-group">
         <label for="task-priority">優先度</label>
@@ -201,6 +213,7 @@
           <option value="中" selected>中</option>
           <option value="高">高</option>
         </select>
+        <p class="field-error" id="task-priority-error"></p>
       </div>
     </div>
     <button type="submit">追加</button>
@@ -240,6 +253,12 @@
     const countEl = document.getElementById("count");
     const filtersEl = document.getElementById("filters");
     const clearDoneBtn = document.getElementById("clear-done");
+    const fieldMap = {
+      title: { input: titleInput, error: document.getElementById("task-title-error") },
+      description: { input: descriptionInput, error: document.getElementById("task-description-error") },
+      deadline: { input: deadlineInput, error: document.getElementById("task-deadline-error") },
+      priority: { input: priorityInput, error: document.getElementById("task-priority-error") }
+    };
 
     function save() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -249,6 +268,49 @@
       if (filter === "active") return tasks.filter((t) => !t.done);
       if (filter === "done") return tasks.filter((t) => t.done);
       return tasks;
+    }
+
+    function clearValidation() {
+      Object.values(fieldMap).forEach(({ input, error }) => {
+        input.classList.remove("invalid");
+        error.textContent = "";
+      });
+    }
+
+    function showFieldError(name, message) {
+      const field = fieldMap[name];
+      if (!field) return;
+      field.input.classList.add("invalid");
+      field.error.textContent = message;
+    }
+
+    function validateForm() {
+      clearValidation();
+      const title = titleInput.value.trim();
+      const description = descriptionInput.value.trim();
+      const deadline = deadlineInput.value;
+      const priority = priorityInput.value.trim();
+
+      let isValid = true;
+      if (!title) {
+        showFieldError("title", "タイトルを入力してください。");
+        isValid = false;
+      }
+      if (!description) {
+        showFieldError("description", "説明を入力してください。");
+        isValid = false;
+      }
+      if (!deadline) {
+        showFieldError("deadline", "期限を入力してください。");
+        isValid = false;
+      }
+      if (!priority) {
+        showFieldError("priority", "優先度を選択してください。");
+        isValid = false;
+      }
+
+      if (!isValid) return null;
+      return { title, description, deadline, priority };
     }
 
     function startEdit(task, li, span) {
@@ -334,23 +396,34 @@
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      const title = titleInput.value.trim();
-      const description = descriptionInput.value.trim();
-      if (!title) return;
+      const values = validateForm();
+      if (!values) return;
       tasks.push({
         id: crypto.randomUUID(),
-        title,
-        description,
-        deadline: deadlineInput.value,
-        priority: priorityInput.value,
+        title: values.title,
+        description: values.description,
+        deadline: values.deadline,
+        priority: values.priority,
         done: false
       });
       titleInput.value = "";
       descriptionInput.value = "";
       deadlineInput.value = "";
       priorityInput.value = "中";
+      clearValidation();
       save();
       render();
+    });
+
+    Object.values(fieldMap).forEach(({ input, error }) => {
+      input.addEventListener("input", () => {
+        input.classList.remove("invalid");
+        error.textContent = "";
+      });
+      input.addEventListener("change", () => {
+        input.classList.remove("invalid");
+        error.textContent = "";
+      });
     });
 
     filtersEl.addEventListener("click", (e) => {
