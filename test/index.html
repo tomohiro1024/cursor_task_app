@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>タスク管理</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #1f2937;
+      --muted: #9ca3af;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+    }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 520px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+    }
+    h1 {
+      font-size: 1.6rem;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    h1 .count {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: normal;
+    }
+    form {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .field-group {
+      display: grid;
+      gap: 6px;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    label {
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+    input[type="text"],
+    input[type="date"],
+    textarea,
+    select {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      font-family: inherit;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: var(--primary-hover); }
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .filters button {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      font-size: 0.85rem;
+    }
+    .filters button.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    li input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    li .text {
+      flex: 1;
+      word-break: break-word;
+      cursor: pointer;
+    }
+    li .text strong {
+      display: block;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    li .meta {
+      display: block;
+      color: #6b7280;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    li.done .text { text-decoration: line-through; color: var(--muted); }
+    li .edit-input {
+      flex: 1;
+      padding: 4px 8px;
+      border: 1px solid var(--primary);
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .delete {
+      background: transparent;
+      color: var(--danger);
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    .delete:hover { background: #fee2e2; }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 32px 0;
+    }
+    footer {
+      margin-top: 20px;
+      text-align: center;
+    }
+    footer button {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    footer button:hover { color: var(--danger); border-color: var(--danger); }
+  </style>
+</head>
+<body>
+  <h1>タスク管理 <span class="count" id="count"></span></h1>
+
+  <form id="task-form">
+    <div class="field-group">
+      <label for="task-title">タイトル</label>
+      <input id="task-title" type="text" placeholder="例: API仕様の確認" autocomplete="off" required />
+    </div>
+    <div class="field-group">
+      <label for="task-description">説明</label>
+      <textarea id="task-description" placeholder="タスクの詳細を入力"></textarea>
+    </div>
+    <div class="field-grid">
+      <div class="field-group">
+        <label for="task-deadline">期限</label>
+        <input id="task-deadline" type="date" />
+      </div>
+      <div class="field-group">
+        <label for="task-priority">優先度</label>
+        <select id="task-priority">
+          <option value="低">低</option>
+          <option value="中" selected>中</option>
+          <option value="高">高</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit">追加</button>
+  </form>
+
+  <div class="filters" id="filters">
+    <button data-filter="all" class="active">すべて</button>
+    <button data-filter="active">未完了</button>
+    <button data-filter="done">完了</button>
+  </div>
+
+  <ul id="task-list"></ul>
+
+  <footer>
+    <button id="clear-done">完了タスクを削除</button>
+  </footer>
+
+  <script>
+    const STORAGE_KEY = "tasks";
+
+    let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").map((task) => ({
+      ...task,
+      title: task.title || task.text || "",
+      description: task.description || "",
+      deadline: task.deadline || "",
+      priority: task.priority || "中",
+      done: Boolean(task.done)
+    }));
+    let filter = "all";
+
+    const form = document.getElementById("task-form");
+    const titleInput = document.getElementById("task-title");
+    const descriptionInput = document.getElementById("task-description");
+    const deadlineInput = document.getElementById("task-deadline");
+    const priorityInput = document.getElementById("task-priority");
+    const list = document.getElementById("task-list");
+    const countEl = document.getElementById("count");
+    const filtersEl = document.getElementById("filters");
+    const clearDoneBtn = document.getElementById("clear-done");
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function visibleTasks() {
+      if (filter === "active") return tasks.filter((t) => !t.done);
+      if (filter === "done") return tasks.filter((t) => t.done);
+      return tasks;
+    }
+
+    function startEdit(task, li, span) {
+      const editInput = document.createElement("input");
+      editInput.type = "text";
+      editInput.className = "edit-input";
+      editInput.value = task.title;
+
+      const finish = (commit) => {
+        if (commit) {
+          const v = editInput.value.trim();
+            if (v) task.title = v;
+        }
+        save();
+        render();
+      };
+
+      editInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") finish(true);
+        if (e.key === "Escape") finish(false);
+      });
+      editInput.addEventListener("blur", () => finish(true));
+
+      li.replaceChild(editInput, span);
+      editInput.focus();
+      editInput.select();
+    }
+
+    function render() {
+      list.innerHTML = "";
+      const items = visibleTasks();
+
+      if (items.length === 0) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.style.justifyContent = "center";
+        li.textContent = "タスクはありません";
+        list.appendChild(li);
+      }
+
+      items.forEach((task) => {
+        const li = document.createElement("li");
+        if (task.done) li.classList.add("done");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.done;
+        checkbox.addEventListener("change", () => {
+          task.done = checkbox.checked;
+          save();
+          render();
+        });
+
+        const span = document.createElement("span");
+        span.className = "text";
+        const deadlineText = task.deadline || "未設定";
+        const descriptionText = task.description?.trim() || "説明なし";
+        span.innerHTML = `
+          <strong></strong>
+          <span class="meta"></span>
+        `;
+        span.querySelector("strong").textContent = task.title;
+        span.querySelector(".meta").textContent = `説明: ${descriptionText} | 期限: ${deadlineText} | 優先度: ${task.priority || "中"}`;
+        span.title = "ダブルクリックで編集";
+        span.addEventListener("dblclick", () => startEdit(task, li, span));
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete";
+        deleteBtn.textContent = "削除";
+        deleteBtn.addEventListener("click", () => {
+          tasks = tasks.filter((t) => t.id !== task.id);
+          save();
+          render();
+        });
+
+        li.append(checkbox, span, deleteBtn);
+        list.appendChild(li);
+      });
+
+      const remaining = tasks.filter((t) => !t.done).length;
+      countEl.textContent = tasks.length ? `（未完了 ${remaining} / 全 ${tasks.length}）` : "";
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const title = titleInput.value.trim();
+      const description = descriptionInput.value.trim();
+      if (!title) return;
+      tasks.push({
+        id: crypto.randomUUID(),
+        title,
+        description,
+        deadline: deadlineInput.value,
+        priority: priorityInput.value,
+        done: false
+      });
+      titleInput.value = "";
+      descriptionInput.value = "";
+      deadlineInput.value = "";
+      priorityInput.value = "中";
+      save();
+      render();
+    });
+
+    filtersEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      filter = btn.dataset.filter;
+      [...filtersEl.children].forEach((b) => b.classList.toggle("active", b === btn));
+      render();
+    });
+
+    clearDoneBtn.addEventListener("click", () => {
+      tasks = tasks.filter((t) => !t.done);
+      save();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
